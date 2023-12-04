@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 advent_of_code::solution!(2);
 
 struct Game<'a> {
@@ -38,8 +39,62 @@ pub fn part_one(input: &str) -> Option<u32> {
     let valid_games: Vec<&Game> = games.iter().filter(|g| {game_is_possible(g,14u32,12u32,13u32)}).collect();
     Some(valid_games.iter().fold(0u32,|acc,x| acc + x.id))
 }
+
+struct Set {
+    red: u32,
+    green: u32,
+    blue: u32,
+}
+
+impl Set {
+    fn maximum(&self, _set: Set) -> Set{
+        Set {
+            red : max_int_or_none(Some(self.red), Some(_set.red)),
+            green : max_int_or_none(Some(self.green), Some(_set.green)),
+            blue : max_int_or_none(Some(self.blue), Some(_set.blue)),
+        }
+    }
+    fn power(&self) -> u32{
+        self.red * self.green * self.blue
+    }
+}
+
+fn create_set_from_drawstr(draw: &Vec<&str>) -> Set {
+    match draw[..] {
+        [x,"red"] => Set {red: x.parse::<u32>().unwrap(), green: 0u32, blue: 0u32},
+        [x,"green"] => Set {red: 0u32, green: x.parse::<u32>().unwrap(), blue: 0u32},
+        [x,"blue"] => Set {red: 0u32, green: 0u32, blue: x.parse::<u32>().unwrap()},
+        _ => Set {red: 0u32, green: 0u32, blue: 0u32},
+    }
+
+}
+
+fn create_set_from_setstr(set: &str) -> Set {
+    let cubes: Vec<&str> = set.split(',').collect();
+    let cubes: Vec<Vec<&str>> = cubes.iter().map(|c| {c.trim().split(' ').collect()}).collect();
+    cubes.iter().map(|c| {create_set_from_drawstr(c)}).fold(Set {red: 0u32, green: 0u32, blue: 0u32}, |acc,x| acc.maximum(x))
+}
+fn power_minimal_game(game: &Game) -> u32 {
+    let game_data = &game.data;
+    let _set = game_data.iter().map(|s| {create_set_from_setstr(s)}).fold(Set {red: 0u32, green: 0u32, blue: 0u32}, |acc,x| acc.maximum(x));
+    _set.power()
+}
+
+fn max_int_or_none(a: Option<u32>, b: Option<u32>) -> u32{
+    match (a,b) {
+        (Some(x),None) => x,
+        (None,Some(x)) => x,
+        (None,None) => 0,
+        (Some(x),Some(y)) => max(x,y),
+    }
+}
+
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let lines = input.lines();
+    let games: Vec<Game> = lines.map(|l| {format_game(l)}).collect();
+    let powers: Vec<u32> = games.iter().map(|g| {power_minimal_game(g)}).collect();
+    Some(powers.iter().fold(0u32,|acc,x| acc + x))
+
 }
 
 #[cfg(test)]
